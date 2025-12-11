@@ -14,7 +14,10 @@
         .card {
             background: #2d2d2d; padding: 2.5rem; border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 90%; max-width: 400px; border: 1px solid #444;
+            min-height: 400px; display: flex; flex-direction: column; justify-content: center;
         }
+        
+        /* Estilos do Formulário */
         h2 { text-align: center; font-weight: 300; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 25px; }
         label { display: block; margin-bottom: 5px; color: #aaa; font-size: 0.9em; }
         input {
@@ -23,37 +26,76 @@
             border-radius: 6px; box-sizing: border-box; outline: none; transition: 0.3s;
         }
         input:focus { border-color: #007bff; background-color: #444; }
+        
+        /* Botão Padrão */
         button {
             width: 100%; padding: 15px; background: linear-gradient(45deg, #007bff, #0056b3);
             color: white; border: none; border-radius: 30px; cursor: pointer;
             font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
         }
         button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4); }
-        .aviso { text-align: center; color: #28a745; margin-top: 15px; display: none; font-weight: bold; }
+
+        /* --- TELA DE SUCESSO (Escondida no início) --- */
+        #tela-sucesso {
+            display: none; /* Começa invisível */
+            text-align: center;
+            animation: fadeIn 0.5s;
+        }
+        .check-icon {
+            font-size: 80px; color: #28a745; margin-bottom: 20px; display: block;
+        }
+        .texto-agradecimento {
+            font-size: 1.2rem; margin-bottom: 10px; color: #fff;
+        }
+        .subtexto {
+            color: #aaa; margin-bottom: 30px; font-size: 0.9rem;
+        }
+        .btn-voltar {
+            background: linear-gradient(45deg, #28a745, #218838);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>🎵 Peça sua Música</h2>
-        <form id="formMusica">
-            <label>Nome da Música</label>
-            <input type="text" id="musica" required placeholder="Digite o nome da música...">
-            <label>Cantor / Banda</label>
-            <input type="text" id="cantor" required placeholder="Quem canta?">
-            <label>Seu Nome</label>
-            <input type="text" id="ouvinte" required placeholder="Como podemos te chamar?">
-            <button type="submit">Enviar Pedido</button>
-        </form>
-        <p class="aviso" id="aviso">✔️ Enviado para o DJ com sucesso!</p>
+        
+        <div id="tela-form">
+            <h2>🎵 Peça sua Música</h2>
+            <form id="formMusica">
+                <label>Nome da Música</label>
+                <input type="text" id="musica" required placeholder="Digite o nome da música...">
+                
+                <label>Cantor / Banda</label>
+                <input type="text" id="cantor" required placeholder="Quem canta?">
+                
+                <label>Seu Nome</label>
+                <input type="text" id="ouvinte" required placeholder="Como podemos te chamar?">
+                
+                <button type="submit" id="btnEnviar">Enviar Pedido</button>
+            </form>
+        </div>
+
+        <div id="tela-sucesso">
+            <span class="check-icon">✓</span>
+            <div class="texto-agradecimento">Pedido Enviado!</div>
+            <p class="subtexto">O DJ já recebeu sua sugestão.</p>
+            
+            <button class="btn-voltar" id="btnNovoPedido">Pedir outra música</button>
+        </div>
+
     </div>
 
     <script type="module">
-        // Importando do CDN para funcionar direto no navegador
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-        // Suas chaves configuradas
+        // SUAS CHAVES (JÁ CONFIGURADAS)
         const firebaseConfig = {
           apiKey: "AIzaSyDNXqwDVvOVDP_I0iE1HomMwLhua4eRuFI",
           authDomain: "musica-dj-4b36a.firebaseapp.com",
@@ -64,18 +106,24 @@
           appId: "1:276741245478:web:689ef2783328180061f4e7"
         };
 
-        // Inicializa o Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Lógica de envio
-        document.getElementById('formMusica').addEventListener('submit', function(e) {
+        // Elementos da tela
+        const telaForm = document.getElementById('tela-form');
+        const telaSucesso = document.getElementById('tela-sucesso');
+        const btnEnviar = document.getElementById('btnEnviar');
+        const btnNovoPedido = document.getElementById('btnNovoPedido');
+        const form = document.getElementById('formMusica');
+
+        // 1. AÇÃO DE ENVIAR
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const btn = document.querySelector('button');
-            const originalText = btn.innerText;
-            btn.innerText = "Enviando...";
-            btn.disabled = true;
+            // Efeito visual de carregamento
+            const textoOriginal = btnEnviar.innerText;
+            btnEnviar.innerText = "Enviando...";
+            btnEnviar.disabled = true;
 
             const novoPedido = {
                 musica: document.getElementById('musica').value,
@@ -85,21 +133,31 @@
                 timestamp: Date.now()
             };
 
-            // Envia para o banco de dados 'pedidos'
             push(ref(db, 'pedidos'), novoPedido)
                 .then(() => {
-                    document.getElementById('formMusica').reset();
-                    const aviso = document.getElementById('aviso');
-                    aviso.style.display = 'block';
-                    setTimeout(() => aviso.style.display = 'none', 3000);
-                    btn.innerText = originalText;
-                    btn.disabled = false;
+                    // SUCESSO: Troca as telas
+                    telaForm.style.display = 'none';
+                    telaSucesso.style.display = 'block';
+                    
+                    // Reseta o formulário
+                    form.reset();
+                    
+                    // Restaura o botão para a próxima vez
+                    btnEnviar.innerText = textoOriginal;
+                    btnEnviar.disabled = false;
                 })
                 .catch((error) => {
                     alert("Erro ao enviar: " + error.message);
-                    btn.innerText = originalText;
-                    btn.disabled = false;
+                    btnEnviar.innerText = textoOriginal;
+                    btnEnviar.disabled = false;
                 });
+        });
+
+        // 2. AÇÃO DE PEDIR NOVAMENTE
+        btnNovoPedido.addEventListener('click', function() {
+            // Esconde sucesso, mostra formulário
+            telaSucesso.style.display = 'none';
+            telaForm.style.display = 'block';
         });
     </script>
 </body>
