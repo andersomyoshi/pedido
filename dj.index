@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do DJ - Ao Vivo</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: #fff; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; padding-top: 20px; }
+        h1 { text-align: center; color: #f0f0f0; margin-bottom: 10px; letter-spacing: 1px; }
+        .status { text-align: center; color: #00ff00; font-size: 0.8rem; margin-bottom: 30px; opacity: 0.7; }
+        
+        .pedido-card { 
+            background-color: #1e1e1e; margin-bottom: 15px; padding: 20px; 
+            border-radius: 10px; border-left: 5px solid #007bff; 
+            display: flex; justify-content: space-between; align-items: center; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); animation: slideIn 0.4s ease-out;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        
+        .info h3 { margin: 0 0 5px 0; font-size: 1.2rem; color: #fff; }
+        .info p { margin: 0; color: #aaa; font-style: italic; }
+        .meta { text-align: right; font-size: 0.85em; color: #666; }
+        .meta strong { color: #888; display: block; margin-bottom: 4px; }
+        
+        .btn-limpar { 
+            display: block; margin: 40px auto; padding: 10px 25px; 
+            background-color: #b02a37; color: white; border: none; 
+            cursor: pointer; border-radius: 5px; transition: 0.3s;
+        }
+        .btn-limpar:hover { background-color: #c82333; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🎧 Fila de Pedidos</h1>
+        <p class="status">🟢 Conectado ao Firebase Global</p>
+
+        <div id="lista-pedidos">
+            <p style="text-align:center; color: #444; margin-top: 50px;">Carregando pedidos...</p>
+        </div>
+        
+        <button class="btn-limpar" onclick="limparTudo()">Apagar Todo o Histórico</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+        // Suas chaves configuradas
+        const firebaseConfig = {
+          apiKey: "AIzaSyDNXqwDVvOVDP_I0iE1HomMwLhua4eRuFI",
+          authDomain: "musica-dj-4b36a.firebaseapp.com",
+          databaseURL: "https://musica-dj-4b36a-default-rtdb.firebaseio.com",
+          projectId: "musica-dj-4b36a",
+          storageBucket: "musica-dj-4b36a.firebasestorage.app",
+          messagingSenderId: "276741245478",
+          appId: "1:276741245478:web:689ef2783328180061f4e7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // OUVINTE EM TEMPO REAL
+        const pedidosRef = ref(db, 'pedidos');
+        
+        onValue(pedidosRef, (snapshot) => {
+            const data = snapshot.val();
+            const container = document.getElementById('lista-pedidos');
+
+            if (!data) {
+                container.innerHTML = '<p style="text-align:center; color: #444; margin-top: 50px;">Nenhum pedido na fila...</p>';
+                return;
+            }
+
+            // Transforma os dados em lista e ordena (mais recentes primeiro)
+            const lista = Object.values(data);
+            lista.sort((a, b) => b.timestamp - a.timestamp);
+
+            let html = '';
+            lista.forEach((pedido) => {
+                html += `
+                    <div class="pedido-card">
+                        <div class="info">
+                            <h3>${pedido.musica}</h3>
+                            <p>🎤 ${pedido.cantor}</p>
+                        </div>
+                        <div class="meta">
+                            <strong>${pedido.ouvinte}</strong>
+                            <span>${pedido.hora}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        });
+
+        // Função para apagar tudo (tornada Global para o botão acessar)
+        window.limparTudo = function() {
+            if(confirm('ATENÇÃO: Isso apagará os pedidos de TODOS os celulares. Tem certeza?')) {
+                set(ref(db, 'pedidos'), null);
+            }
+        }
+    </script>
+</body>
+</html>
